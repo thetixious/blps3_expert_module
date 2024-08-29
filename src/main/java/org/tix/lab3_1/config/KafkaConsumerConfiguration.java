@@ -13,7 +13,7 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 
 import org.springframework.kafka.support.serializer.JsonDeserializer;
-import org.tix.lab3_1.model.ExpertMessage;
+import org.tix.lab3_1.model.mainDB.ExpertMessage;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,7 +32,7 @@ public class KafkaConsumerConfiguration {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         props.put(JsonDeserializer.TRUSTED_PACKAGES,"*");
-        props.put(JsonDeserializer.TYPE_MAPPINGS,"token:org.tix.lab3_1.model.ExpertMessage");
+        props.put(JsonDeserializer.TYPE_MAPPINGS,"token:org.tix.lab3_1.model.mainDB.ExpertMessage");
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
