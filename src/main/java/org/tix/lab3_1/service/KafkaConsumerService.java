@@ -8,6 +8,7 @@ import org.tix.lab3_1.model.mainDB.ExpertMessage;
 public class KafkaConsumerService {
     private final ApprovingService approvingService;
 
+
     public KafkaConsumerService(ApprovingService approvingService) {
         this.approvingService = approvingService;
     }

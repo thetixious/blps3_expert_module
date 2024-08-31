@@ -56,6 +56,7 @@ public class MainDbConf {
         mainJpaProperties.put("hibernate.show_sql", "true");
         mainJpaProperties.put("javax.persistence.transactionType", "JTA");
         mainJpaProperties.put("hibernate.hbm2ddl.auto", "update");
+        mainJpaProperties.put("spring.jpa.open-in-view", "true");
         return mainJpaProperties;
     }
 

@@ -12,6 +12,7 @@ import org.tix.lab3_1.repo.mainDB.ExpertMessageRepository;
 import org.springframework.http.ResponseEntity;
 import org.tix.lab3_1.DTO.CreditCardDTO;
 import org.tix.lab3_1.util.CreditCardMapper;
+import org.tix.lab3_1.util.ExpertMessageMapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,32 +23,38 @@ public class ApprovingService {
     private final PlatformTransactionManager transactionManager;
     private final ManagerRepository managerRepository;
     private final ExpertMessageRepository expertMessageRepository;
+    private final KafkaProducerService kafkaProducerService;
     private List<CreditCardDTO> response = new ArrayList<>();
     private final CreditCardMapper creditCardMapper;
+    private final ExpertMessageMapper expertMessageMapper;
 
-    public ApprovingService(PlatformTransactionManager transactionManager, ManagerRepository managerRepository, ExpertMessageRepository expertMessageRepository, CreditCardMapper creditCardMapper) {
+    public ApprovingService(PlatformTransactionManager transactionManager, ManagerRepository managerRepository, ExpertMessageRepository expertMessageRepository, KafkaProducerService kafkaProducerService, CreditCardMapper creditCardMapper, ExpertMessageMapper expertMessageMapper) {
         this.transactionManager = transactionManager;
         this.managerRepository = managerRepository;
         this.expertMessageRepository = expertMessageRepository;
+        this.kafkaProducerService = kafkaProducerService;
         this.creditCardMapper = creditCardMapper;
+        this.expertMessageMapper = expertMessageMapper;
     }
 
     public ResponseEntity<?> getResult(Long id, List<Long> cardsId) {
-        ExpertMessage expertMessage = expertMessageRepository.findById(id).orElseThrow();
+        ExpertMessage expertMessage = expertMessageRepository.findByUserId(id).orElseThrow();
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
         try {
             transactionTemplate.execute(status -> {
+
                 expertMessage.getPreferredCards().removeIf(card -> !cardsId.contains(card.getId()));
+
                 Manager manager = managerRepository.findFirstByStatusFalse().orElseThrow();
-                StringBuilder data = new StringBuilder();
-                data.append(expertMessage.getCandidateName());
-                data.append(expertMessage.getCandidateSurname());
-                data.append(expertMessage.getCandidatePassport());
-                manager.setData(String.valueOf(data));
+                String data = expertMessage.getCandidateName() +
+                        expertMessage.getCandidateSurname() +
+                        expertMessage.getCandidatePassport();
+                manager.setData(data);
                 manager.setStatus(true);
                 response = expertMessage.getPreferredCards().stream().map(creditCardMapper::toDTO).collect(Collectors.toList());
                 expertMessageRepository.save(expertMessage);
                 managerRepository.save(manager);
+                kafkaProducerService.sendMessage(expertMessage);
                 return response;
             });
 
@@ -62,8 +69,10 @@ public class ApprovingService {
         expertMessageRepository.save(expertMessage);
     }
 
+    @Transactional
     public ResponseEntity<?> getInfo(Long id) {
         ExpertMessage message = expertMessageRepository.findByUserId(id).orElseThrow();
-        return ResponseEntity.status(HttpStatus.OK).body(message.getCandidateName());
+        return ResponseEntity.status(HttpStatus.OK).body(expertMessageMapper.toDTO(message));
     }
+
 }
